@@ -1,0 +1,20 @@
+{
+  "name": "image",
+  "description": "Generates images via AI. Provide a detailed prompt describing the image you want to create.",
+  "version": "0.1.0",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "description": "A detailed description of the image to generate"
+      },
+      "model": {
+        "type": "string",
+        "description": "Optional model override (default: google/gemini-2.5-flash-preview:thinking)"
+      }
+    },
+    "required": ["prompt"]
+  },
+  "env": ["TORII_OPENROUTER_API_KEY"]
+}
