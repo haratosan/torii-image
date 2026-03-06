@@ -1,6 +1,6 @@
 {
   "name": "image",
-  "description": "Generates images via AI. Provide a detailed prompt describing the image you want to create.",
+  "description": "Generates or edits images via AI. Provide a detailed prompt describing the image to generate or how to edit the attached image.",
   "version": "0.1.0",
   "parameters": {
     "type": "object",

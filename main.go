@@ -15,10 +15,11 @@ import (
 )
 
 type ExtRequest struct {
-	Action string `json:"action"`
-	Input  string `json:"input"`
-	ChatID string `json:"chat_id"`
-	UserID string `json:"user_id"`
+	Action string   `json:"action"`
+	Input  string   `json:"input"`
+	ChatID string   `json:"chat_id"`
+	UserID string   `json:"user_id"`
+	Images []string `json:"images,omitempty"`
 }
 
 type ExtResponse struct {
@@ -40,7 +41,17 @@ type OpenRouterRequest struct {
 
 type OpenRouterMsg struct {
 	Role    string `json:"role"`
-	Content string `json:"content"`
+	Content any    `json:"content"`
+}
+
+type ContentPart struct {
+	Type     string    `json:"type"`
+	Text     string    `json:"text,omitempty"`
+	ImageURL *ImageURL `json:"image_url,omitempty"`
+}
+
+type ImageURL struct {
+	URL string `json:"url"`
 }
 
 type OpenRouterResponse struct {
@@ -107,7 +118,7 @@ func main() {
 	cleanupOldImages(outputDir)
 
 	// Call OpenRouter
-	imageData, err := generateImage(apiKey, model, params.Prompt)
+	imageData, err := generateImage(apiKey, model, params.Prompt, req.Images)
 	if err != nil {
 		writeError("image generation failed: " + err.Error())
 		return
@@ -128,11 +139,27 @@ func main() {
 	})
 }
 
-func generateImage(apiKey, model, prompt string) ([]byte, error) {
+func generateImage(apiKey, model, prompt string, images []string) ([]byte, error) {
+	var userContent any
+	if len(images) > 0 {
+		parts := []ContentPart{
+			{Type: "text", Text: prompt},
+		}
+		for _, b64 := range images {
+			parts = append(parts, ContentPart{
+				Type:     "image_url",
+				ImageURL: &ImageURL{URL: "data:image/jpeg;base64," + b64},
+			})
+		}
+		userContent = parts
+	} else {
+		userContent = prompt
+	}
+
 	reqBody := OpenRouterRequest{
 		Model: model,
 		Messages: []OpenRouterMsg{
-			{Role: "user", Content: prompt},
+			{Role: "user", Content: userContent},
 		},
 		Modalities: []string{"text", "image"},
 	}
