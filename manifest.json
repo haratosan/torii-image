@@ -16,5 +16,5 @@
     },
     "required": ["prompt"]
   },
-  "env": ["TORII_OPENROUTER_API_KEY"]
+  "env": ["TORII_OPENROUTER_API_KEY", "TORII_IMAGE_MODEL"]
 }

@@ -46,7 +46,8 @@ type OpenRouterMsg struct {
 type OpenRouterResponse struct {
 	Choices []struct {
 		Message struct {
-			Content string `json:"content"`
+			Content string            `json:"content"`
+			Images  []OpenRouterImage `json:"images"`
 		} `json:"message"`
 	} `json:"choices"`
 	Error *struct {
@@ -54,7 +55,14 @@ type OpenRouterResponse struct {
 	} `json:"error"`
 }
 
-const defaultModel = "google/gemini-2.5-flash-preview:thinking"
+type OpenRouterImage struct {
+	Type     string `json:"type"`
+	ImageURL struct {
+		URL string `json:"url"`
+	} `json:"image_url"`
+}
+
+const defaultModel = "google/gemini-3.1-flash-image-preview"
 
 func main() {
 	data, err := io.ReadAll(os.Stdin)
@@ -87,6 +95,9 @@ func main() {
 	}
 
 	model := params.Model
+	if model == "" {
+		model = os.Getenv("TORII_IMAGE_MODEL")
+	}
 	if model == "" {
 		model = defaultModel
 	}
@@ -167,18 +178,26 @@ func generateImage(apiKey, model, prompt string) ([]byte, error) {
 		return nil, fmt.Errorf("no choices in response")
 	}
 
-	// Extract base64 image from inline_data in content parts
-	content := orResp.Choices[0].Message.Content
+	msg := orResp.Choices[0].Message
 
-	// The response content may contain markdown image with base64 data
-	// or the content might be structured differently depending on the model.
-	// Try to find base64 PNG/JPEG data in the response.
-	imageData, err := extractImageData(content)
-	if err != nil {
-		return nil, fmt.Errorf("extract image: %w", err)
+	// Try images array first (newer models like Gemini 3.1)
+	if len(msg.Images) > 0 {
+		imageData, err := extractImageData(msg.Images[0].ImageURL.URL)
+		if err == nil {
+			return imageData, nil
+		}
 	}
 
-	return imageData, nil
+	// Fallback: extract from content string (older models)
+	if msg.Content != "" {
+		imageData, err := extractImageData(msg.Content)
+		if err != nil {
+			return nil, fmt.Errorf("extract image: %w", err)
+		}
+		return imageData, nil
+	}
+
+	return nil, fmt.Errorf("no image data in response (content empty, images array length: %d)", len(msg.Images))
 }
 
 func extractImageData(content string) ([]byte, error) {
